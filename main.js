@@ -2,8 +2,9 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
 let mainWindow;
+let downloadProgress = false;
 
-function createWindow () {
+function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -15,9 +16,11 @@ function createWindow () {
   mainWindow.on('closed', function () {
     mainWindow = null;
   });
-  mainWindow.once('ready-to-show', () => {
-    autoUpdater.checkForUpdatesAndNotify();
-  });
+  setInterval(() => {
+    if (!downloadProgress) {
+      autoUpdater.checkForUpdatesAndNotify();
+    }
+  }, 10000)
 }
 
 app.on('ready', () => {
@@ -41,13 +44,17 @@ ipcMain.on('app_version', (event) => {
 });
 
 autoUpdater.on('update-available', () => {
+  downloadProgress = true;
   mainWindow.webContents.send('update_available');
 });
 
 autoUpdater.on('update-downloaded', () => {
+  downloadProgress = false;
   mainWindow.webContents.send('update_downloaded');
+  autoUpdater.quitAndInstall(true, true);
+  // app.relaunch();
 });
 
 ipcMain.on('restart_app', () => {
-  autoUpdater.quitAndInstall();
+
 });
